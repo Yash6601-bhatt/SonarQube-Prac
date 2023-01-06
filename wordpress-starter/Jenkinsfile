@@ -1,0 +1,77 @@
+#!groovy script
+node {
+
+#def webPath = '/home/docker/insinfinity'
+#def dockerRegistry='dockerregistry.ecosmob.net:5000'
+
+stage ('Checkout'){
+checkout scm
+}
+
+if (env.BRANCH_NAME == 'master')
+{
+ 
+stage('SonarQube analysis') {
+                    // requires SonarQube Scanner 2.8+
+                    //sh "npm install"
+                    def scannerHome = tool 'Sonar-Scanner';
+                    withSonarQubeEnv('SonarQube') {
+                    def sample=env.JOB_NAME.replaceAll('/','.')
+                    def projectKey=sample.replaceAll('%2F','.')
+            sh "${scannerHome}/bin/sonar-scanner -D sonar.host.url='http://172.16.16.33:9000' -D sonar.projectKey=${projectKey}  -D sonar.sources=. -D sonar.exclusions=node_modules/**,Dockerfile,docker-compose.yml,default.conf"
+                     stash includes: ".scannerwork/report-task.txt", name: 'sonar'
+                    }
+          }
+ 
+ 
+ 
+#withCredentials( [usernamePassword( credentialsId: 'insured-infinity', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')])
+#{
+#  def remote = [:]
+#  remote.name = 'insured infinity'
+#  remote.host = "5.161.112.18"
+#  remote.port = 52222
+#  remote.user = "${USERNAME}"
+#  remote.password = "${PASSWORD}"
+#  remote.allowAnyHosts = true
+#
+#
+#stage ('Build and Push the Image')
+#    {
+#      //sshCommand remote: remote, command: "cp ${webPath_dev}/docker/resources/.env-dev ${webPath_dev}/.env"
+#     
+#     withDockerRegistry(credentialsId: 'dockerregistry', url: 'https://dockerregistry.ecosmob.net:5000') {
+#     
+#      sh "docker build --no-cache -t ${dockerRegistry}/release-develop-insinfinity-web:v${env.BUILD_ID} -f Dockerfile ."
+#      sh "docker push ${dockerRegistry}/release-develop-insinfinity-web:v${env.BUILD_ID}"
+#    }
+#    }
+#
+#
+#   stage('Pull and Deploy Image on prod Server') 
+#    {
+#      sshCommand remote: remote, command: "docker pull ${dockerRegistry}/release-develop-insinfinity-web:v${env.BUILD_ID}; docker images"
+#      sshCommand remote: remote, command: "docker-compose -f ${webPath}/docker-compose.yml down" 
+#      sshCommand remote: remote, command: "cp ${webPath}/docker-compose.yml ${webPath}/docker-compose-old.yml"
+#      previous = sshCommand remote: remote, command: "cat ${webPath}/docker-compose.yml | grep -o ':v.*' | sed 's/://g' ", returnStdout: true
+#      sshCommand remote: remote, command: "sed -i 's/${previous}/v${env.BUILD_ID}/g' ${webPath}/docker-compose.yml"
+#      sshCommand remote: remote, command: "docker-compose -f ${webPath}/docker-compose.yml up -d ; docker ps"
+#    }  
+#
+#
+#  
+#}
+#
+#
+#}
+}
+def Properties getProperties(filename) {
+def properties = new Properties()
+properties.load(new StringReader(readFile(filename)))
+return properties
+}
+ 
+@NonCPS
+def jsonParse(def json) {
+new groovy.json.JsonSlurperClassic().parseText(json)
+}
